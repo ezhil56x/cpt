@@ -1,0 +1,394 @@
+# caesar
+def encrypt(message, key):
+    encrypted = ""
+    for char in message:
+        if char.isalpha():
+            shift = 65 if char.isupper() else 97
+            encrypted += chr((ord(char) - shift + key) % 26 + shift)
+        else:
+            encrypted += char
+    return encrypted
+
+def decrypt(message, key):
+    return encrypt(message, -key)
+
+def main():
+    message = "Hello, World!"
+    key = 3
+    encrypted = encrypt(message, key)
+    print(encrypted)
+    decrypted = decrypt(encrypted, key)
+    print(decrypted)
+
+if __name__ == "__main__":
+    main()
+
+# diffie
+import random
+
+def diffie_hellman_key_exchange(p, g):
+    a = random.randint(1, p - 2)  # Private key for party A
+    b = random.randint(1, p - 2)  # Private key for party B
+    A = pow(g, a, p)
+    B = pow(g, b, p)
+    secret_key_A = pow(B, a, p)
+    secret_key_B = pow(A, b, p)
+    assert secret_key_A == secret_key_B
+    return secret_key_A
+
+if __name__ == "__main__":
+  print("Diffie-Hellman (DH) Key Exchange")
+  
+  p = int(input("Enter a prime number (p): "))
+  g = int(input("Enter a base (g): "))
+  
+  shared_secret = diffie_hellman_key_exchange(p, g)
+  
+  print(f"Shared Secret Key: {shared_secret}")
+
+# elgamal
+import sympy
+import random
+from binascii import hexlify, unhexlify
+
+def mod_inverse(a, p):
+    t, new_t = 0, 1
+    r, new_r = p, a
+
+    while new_r != 0:
+        quotient = r // new_r
+        t, new_t = new_t, t - quotient * new_t
+        r, new_r = new_r, r - quotient * new_r
+
+    if r > 1:
+        raise ValueError(f"{a} has no inverse mod {p}")
+
+    if t < 0:
+        t = t + p
+    return t
+
+def shared_secret(g, x, p):
+    return pow(g, x, p)
+
+def elgamal_key_generation(p, g):
+    x = random.randint(1, p-2)  # Private key
+    y = shared_secret(g, x, p)  # Public key
+    print(f"Private key (x): {x}")
+
+
+    print(f"Public key (y): {y}")
+    return (p, g, y), x
+
+def encrypt(m, r, g, p, h):
+    c1 = pow(g, r, p)
+    c2 = (m * pow(h, r, p)) % p
+    print(f"Random value (r): {r}")
+    print(f"Ciphertext (c1, c2): ({c1}, {c2})")
+    return c1, c2
+
+def decrypt(x, c1, c2, p):
+    s = pow(c1, x, p)
+    s_inv = mod_inverse(s, p)
+    m = (c2 * s_inv) % p
+    print(f"Shared secret (s): {s}")
+    print(f"Modular inverse of shared secret (s_inv): {s_inv}")
+    return m
+
+print("ElGamal Algorithm")
+input_message = input("Enter the message to be encrypted: ")
+input_bytes = str.encode(input_message)
+m = int(hexlify(input_bytes), 16)
+p = sympy.randprime(m*2, m*4)
+g = sympy.randprime(int(m/2), m)
+print(f"Prime number (p): {p}")
+print(f"Generator (g): {g}")
+print("\n")
+
+# Key generation
+print("Key Generation")
+public_key, private_key = elgamal_key_generation(p, g)
+print(f"(p, g, h): {public_key}")
+print("\n")
+
+# Encryption
+print("Encryption")
+print(f"Original message: {input_message}")
+r = random.randint(1, p-2)
+encrypted = encrypt(m, r, public_key[1], public_key[0],
+                    public_key[2])
+print("\n")
+
+# Decryption
+print("Decryption")
+decrypted_int = decrypt(private_key, encrypted[0], encrypted[1], p)
+decrypted_hex = format(decrypted_int, 'x')
+decrypted_message = unhexlify(decrypted_hex)
+print(f"Decrypted Message: {decrypted_message.decode()}")
+
+# hill
+keyMatrix = [[0] * 3 for i in range(3)]
+messageVector = [[0] for i in range(3)]
+cipherMatrix = [[0] for i in range(3)]
+
+def getKeyMatrix(key):
+  k = 0
+  for i in range(3):
+    for j in range(3):
+      keyMatrix[i][j] = ord(key[k]) % 65
+      k += 1
+
+def encrypt(messageVector):
+  for i in range(3):
+    for j in range(1):
+      cipherMatrix[i][j] = 0
+      for x in range(3):
+        cipherMatrix[i][j] += (keyMatrix[i][x] *
+                  messageVector[x][j])
+      cipherMatrix[i][j] = cipherMatrix[i][j] % 26
+
+def HillCipher(message, key):
+  getKeyMatrix(key)
+
+  for i in range(3):
+    messageVector[i][0] = ord(message[i]) % 65
+
+  encrypt(messageVector)
+  CipherText = []
+  for i in range(3):
+    CipherText.append(chr(cipherMatrix[i][0] + 65))
+  print("Ciphertext: ", "".join(CipherText))
+
+def main():
+  message = "ACT"
+  key = "GYBNQKURP"
+
+  HillCipher(message, key)
+
+if __name__ == "__main__":
+  main()
+
+# playfair
+def toLowerCase(text):
+    return text.lower()
+
+def removeSpaces(text):
+    newText = ""
+    for i in text:
+        if i == " ":
+            continue
+        else:
+            newText = newText + i
+    return newText
+
+def Diagraph(text):
+    Diagraph = []
+    group = 0
+    for i in range(2, len(text), 2):
+        Diagraph.append(text[group:i])
+
+        group = i
+    Diagraph.append(text[group:])
+    return Diagraph
+
+def FillerLetter(text):
+    k = len(text)
+    if k % 2 == 0:
+        for i in range(0, k, 2):
+            if text[i] == text[i+1]:
+                new_word = text[0:i+1] + str('x') + text[i+1:]
+                new_word = FillerLetter(new_word)
+                break
+            else:
+                new_word = text
+    else:
+        for i in range(0, k-1, 2):
+            if text[i] == text[i+1]:
+                new_word = text[0:i+1] + str('x') + text[i+1:]
+                new_word = FillerLetter(new_word)
+                break
+            else:
+                new_word = text
+    return new_word
+
+list1 = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm',
+         'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
+def generateKeyTable(word, list1):
+    key_letters = []
+    for i in word:
+        if i not in key_letters:
+            key_letters.append(i)
+
+    compElements = []
+    for i in key_letters:
+        if i not in compElements:
+            compElements.append(i)
+    for i in list1:
+        if i not in compElements:
+            compElements.append(i)
+
+    matrix = []
+    while compElements != []:
+        matrix.append(compElements[:5])
+        compElements = compElements[5:]
+
+    return matrix
+
+def search(mat, element):
+    for i in range(5):
+        for j in range(5):
+            if(mat[i][j] == element):
+                return i, j
+
+def encrypt_RowRule(matr, e1r, e1c, e2r, e2c):
+    char1 = ''
+    if e1c == 4:
+        char1 = matr[e1r][0]
+    else:
+        char1 = matr[e1r][e1c+1]
+
+    char2 = ''
+    if e2c == 4:
+        char2 = matr[e2r][0]
+    else:
+        char2 = matr[e2r][e2c+1]
+
+    return char1, char2
+
+def encrypt_ColumnRule(matr, e1r, e1c, e2r, e2c):
+    char1 = ''
+    if e1r == 4:
+        char1 = matr[0][e1c]
+    else:
+        char1 = matr[e1r+1][e1c]
+
+    char2 = ''
+    if e2r == 4:
+        char2 = matr[0][e2c]
+    else:
+        char2 = matr[e2r+1][e2c]
+
+    return char1, char2
+
+def encrypt_RectangleRule(matr, e1r, e1c, e2r, e2c):
+    char1 = ''
+    char1 = matr[e1r][e2c]
+
+    char2 = ''
+    char2 = matr[e2r][e1c]
+
+    return char1, char2
+
+def encryptByPlayfairCipher(Matrix, plainList):
+    CipherText = []
+    for i in range(0, len(plainList)):
+        c1 = 0
+        c2 = 0
+        ele1_x, ele1_y = search(Matrix, plainList[i][0])
+        ele2_x, ele2_y = search(Matrix, plainList[i][1])
+
+        if ele1_x == ele2_x:
+            c1, c2 = encrypt_RowRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
+        elif ele1_y == ele2_y:
+            c1, c2 = encrypt_ColumnRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
+        else:
+            c1, c2 = encrypt_RectangleRule(
+                Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
+
+        cipher = c1 + c2
+        CipherText.append(cipher)
+    return CipherText
+
+text_Plain = 'Attack at dawn'
+text_Plain = removeSpaces(toLowerCase(text_Plain))
+PlainTextList = Diagraph(FillerLetter(text_Plain))
+if len(PlainTextList[-1]) != 2:
+    PlainTextList[-1] = PlainTextList[-1]+'z'
+
+key = "Gravity Falls"
+print("Key text:", key)
+
+key = removeSpaces(toLowerCase(key))
+Matrix = generateKeyTable(key, list1)
+
+print("Plain Text:", text_Plain)
+CipherList = encryptByPlayfairCipher(Matrix, PlainTextList)
+
+CipherText = ""
+for i in CipherList:
+    CipherText += i
+print("CipherText:", CipherText)
+
+# rsa
+import math
+
+def gcd(a, b):
+    while b != 0:
+        a, b = b, a % b
+    return a
+
+class RSA:
+    def __init__(self, p=3, q=7):
+        self.p = p
+        self.q = q
+        self.n = p * q
+        self.phi = (p - 1) * (q - 1)
+        self.e = 7
+        self._setE()
+        self._setD()
+
+    def encrypt(self, text):
+        text = [ord(char) for char in text]
+        encrypted = [pow(x, self.e, self.n) for x in text]
+        return encrypted
+
+    def decrypt(self, encrypted):
+        decrypted = [pow(x, self.d, self.n) for x in encrypted]
+        decrypted = [chr(x) for x in decrypted]
+        return ''.join(decrypted)
+
+    def getPublicKey(self):
+        return self.e, self.n
+
+    def getPrivateKey(self):
+        return self.d, self.n
+
+    def _setD(self):
+        def gcdExtended(a, b):
+            if a == 0:
+                return b, 0, 1
+            gcd, x1, y1 = gcdExtended(b % a, a)
+            x = y1 - (b // a) * x1
+            y = x1
+            return gcd, x, y
+
+        def modInverse(a, m):
+            gcd, x, _ = gcdExtended(a, m)
+            if gcd != 1:
+                return -1
+            return (x % m + m) % m
+
+        self.d = modInverse(self.e, self.phi)
+
+    def _setE(self):
+        while self.e < self.phi:
+            if gcd(self.e, self.phi) == 1:
+                break
+            self.e += 1
+
+if __name__ == '__main__':
+    p = int(input("Enter a prime number (p): "))
+    q = int(input("Enter another prime number (q): "))
+    
+    encoder = RSA(p, q)
+    
+    print("Public Key:", encoder.getPublicKey())
+    print("Private Key:", encoder.getPrivateKey())
+    
+    text = input("Enter text to encode: ")
+    
+    encrypted = encoder.encrypt(text)
+    print("Encrypted:", encrypted)
+    
+    decrypted = encoder.decrypt(encrypted)
+    print("Decoded:", decrypted)
